@@ -1,193 +1,73 @@
-import { ElementWithUtils, qsr } from "../utils/dom";
 import * as Notifications from "../elements/notifications";
-import {
-  sendEmailVerification,
-  updateProfile,
-  UserCredential,
-  getAdditionalUserInfo,
-} from "firebase/auth";
+import { UserCredential, getAdditionalUserInfo } from "firebase/auth";
 import Ape from "../ape";
-import { createErrorMessage } from "../utils/misc";
 import * as LoginPage from "../pages/login";
 import * as AccountController from "../auth";
-import * as CaptchaController from "../controllers/captcha-controller";
-import * as Loader from "../elements/loader";
 import { subscribe as subscribeToSignUpEvent } from "../observables/google-sign-up-event";
-import AnimatedModal from "../utils/animated-modal";
-import { resetIgnoreAuthCallback } from "../firebase";
-import { ValidatedHtmlInputElement } from "../elements/input-validation";
-import { UserNameSchema } from "@monkeytype/schemas/users";
-import { remoteValidation } from "../utils/remote-validation";
 
-let signedInUser: UserCredential | undefined = undefined;
+/**
+ * Google-only build (no captcha):
+ * Monkeytype's Google SIGN-UP flow requires reCAPTCHA + server-side user creation.
+ * Since we removed captcha + email/password signup, we disable this modal entirely.
+ *
+ * We still clean up "new user" credentials so Firebase doesn't keep a dangling user.
+ */
 
-function show(credential: UserCredential): void {
-  void modal.show({
-    mode: "dialog",
-    focusFirstInput: true,
-    beforeAnimation: async () => {
-      signedInUser = credential;
-
-      if (!CaptchaController.isCaptchaAvailable()) {
-        Notifications.add(
-          "Could not show google sign up popup: Captcha is not avilable. This could happen due to a blocked or failed network request. Please refresh the page or contact support if this issue persists.",
-          -1,
-        );
-        return;
-      }
-      CaptchaController.reset("googleSignUpModal");
-      CaptchaController.render(
-        $("#googleSignUpModal .captcha")[0] as HTMLElement,
-        "googleSignUpModal",
-      );
-      enableInput();
-      disableButton();
-    },
-    afterAnimation: async () => {
-      if (!CaptchaController.isCaptchaAvailable()) {
-        void hide();
-      }
-    },
-  });
-}
-
-async function hide(): Promise<void> {
-  void modal.hide({
-    afterAnimation: async () => {
-      resetIgnoreAuthCallback();
-      if (signedInUser !== undefined) {
-        Notifications.add("Sign up process cancelled", 0, {
-          duration: 5,
-        });
-        LoginPage.hidePreloader();
-        LoginPage.enableInputs();
-        if (getAdditionalUserInfo(signedInUser)?.isNewUser) {
-          await Ape.users.delete();
-          await signedInUser?.user.delete().catch(() => {
-            //user might be deleted already by the server
-          });
-        }
-        AccountController.signOut();
-        signedInUser = undefined;
-      }
-    },
-  });
-}
-
-async function apply(): Promise<void> {
-  if (!signedInUser) {
-    Notifications.add(
-      "Missing user credential. Please close the popup and try again.",
-      -1,
-    );
-    return;
-  }
-
-  const captcha = CaptchaController.getResponse("googleSignUpModal");
-  if (!captcha) {
-    Notifications.add("Please complete the captcha", 0);
-    return;
-  }
-
-  disableInput();
-  disableButton();
-
-  Loader.show();
-  const name = $("#googleSignUpModal input").val() as string;
+async function cleanupNewUser(credential: UserCredential): Promise<void> {
   try {
-    if (name.length === 0) throw new Error("Name cannot be empty");
-    const response = await Ape.users.create({ body: { name, captcha } });
-    if (response.status !== 200) {
-      throw new Error(`Failed to create user: ${response.body.message}`);
-    }
+    // If the server already created something, try to delete it (safe to fail)
+    await Ape.users.delete().catch(() => {});
+  } catch {
+    // ignore
+  }
 
-    if (response.status === 200) {
-      await updateProfile(signedInUser.user, { displayName: name });
-      await sendEmailVerification(signedInUser.user);
-      Notifications.add("Account created", 1);
-      LoginPage.enableInputs();
-      LoginPage.hidePreloader();
-      await AccountController.loadUser(signedInUser.user);
+  try {
+    await credential.user.delete().catch(() => {});
+  } catch {
+    // ignore
+  }
 
-      signedInUser = undefined;
-      Loader.hide();
-      void hide();
-    }
-  } catch (e) {
-    console.log(e);
-    const message = createErrorMessage(e, "Failed to sign in with Google");
-    Notifications.add(message, -1);
+  try {
+    AccountController.signOut();
+  } catch {
+    // ignore
+  }
+
+  try {
     LoginPage.hidePreloader();
     LoginPage.enableInputs();
-    LoginPage.enableSignUpButton();
-    if (signedInUser && getAdditionalUserInfo(signedInUser)?.isNewUser) {
-      await Ape.users.delete();
-      await signedInUser?.user.delete().catch(() => {
-        //user might be deleted already by the server
-      });
-    }
-    AccountController.signOut();
-    signedInUser = undefined;
-    void hide();
-    Loader.hide();
-    return;
+  } catch {
+    // ignore
   }
 }
 
-function enableButton(): void {
-  $("#googleSignUpModal button").prop("disabled", false);
+// Keep the signature in case something imports it.
+export async function show(_credential: UserCredential): Promise<void> {
+  Notifications.add(
+    "Sign up is disabled. Please sign in with Google instead.",
+    0,
+    { duration: 4 }
+  );
 }
 
-function disableButton(): void {
-  $("#googleSignUpModal button").prop("disabled", true);
-}
+subscribeToSignUpEvent((credential, isNewUser) => {
+  // This callback fires when the app detects a Google auth result.
+  // If it thinks it's a "new user", Monkeytype would normally show the captcha modal.
+  // In Google-only mode, we block that and clean up.
+  if (credential && isNewUser) {
+    Notifications.add("Sign up is disabled on this build.", 0, { duration: 4 });
 
-const nameInputEl = qsr<HTMLInputElement>("#googleSignUpModal input");
-
-function enableInput(): void {
-  nameInputEl?.enable();
-}
-
-function disableInput(): void {
-  nameInputEl?.disable();
-}
-
-new ValidatedHtmlInputElement(nameInputEl, {
-  schema: UserNameSchema,
-  isValid: remoteValidation(
-    async (name) => Ape.users.getNameAvailability({ params: { name } }),
-    { check: (data) => data.available || "Name not available" },
-  ),
-  debounceDelay: 1000,
-  callback: (result) => {
-    if (result.status === "success") {
-      enableButton();
+    // If Firebase marks it as a new user, clean up the temporary user to avoid dangling state
+    if (getAdditionalUserInfo(credential)?.isNewUser) {
+      void cleanupNewUser(credential);
     } else {
-      disableButton();
+      // still ensure UI isn't stuck
+      try {
+        LoginPage.hidePreloader();
+        LoginPage.enableInputs();
+      } catch {
+        // ignore
+      }
     }
-  },
-});
-
-async function setup(modalEl: ElementWithUtils): Promise<void> {
-  modalEl.on("submit", (e) => {
-    e.preventDefault();
-    void apply();
-  });
-}
-
-subscribeToSignUpEvent((signedInUser, isNewUser) => {
-  if (signedInUser !== undefined && isNewUser) {
-    show(signedInUser);
   }
-});
-
-const modal = new AnimatedModal({
-  dialogId: "googleSignUpModal",
-  setup,
-  customEscapeHandler: async (): Promise<void> => {
-    void hide();
-  },
-  customWrapperClickHandler: async (): Promise<void> => {
-    void hide();
-  },
 });
