@@ -31,7 +31,6 @@ export const page = new Page({
   beforeShow: async (): Promise<void> => {
     Skeleton.append("pageLogin", "main");
 
-    // Clear any inputs that might exist (in our Google-only login page, there are none)
     const inputs = qsa<HTMLInputElement>(".pageLogin input");
     inputs.forEach((input) => input.setValue(""));
 
@@ -44,12 +43,19 @@ onWindowLoad(() => {
   Skeleton.save("pageLogin");
 });
 
-
-// Google-only build: register form removed, keep these for compatibility
+// Google-only build: signup removed, keep these exports for compatibility
 export function enableSignUpButton(): void {
   // no-op
 }
 
 export function disableSignUpButton(): void {
   // no-op
+}
+
+export function updateSignupButton(): void {
+  // no-op
+}
+
+export function getSignupData(): false {
+  return false;
 }
