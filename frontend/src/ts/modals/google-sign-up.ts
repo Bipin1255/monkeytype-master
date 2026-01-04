@@ -13,7 +13,7 @@ import { subscribe as subscribeToSignUpEvent } from "../observables/google-sign-
 async function cleanupNewUser(credential: UserCredential): Promise<void> {
   try {
     // Remove the temporary Firebase user so we don't leave a dangling account
-    await credential.user.delete().catch(() => {});
+    await credential.user.delete().catch(() => undefined);
   } catch {
     // ignore
   }
