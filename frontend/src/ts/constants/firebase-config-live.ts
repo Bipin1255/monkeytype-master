@@ -1,9 +1,16 @@
-// Stub for personal/self-host builds.
-// The production Monkeytype setup likely injects real Firebase config.
-// Export a safe "disabled" config so the frontend can build without secrets.
+// frontend/src/ts/constants/firebase-config-live.ts
 
-export const FIREBASE_CONFIG = null as const;
+export const firebaseConfig = {
+  apiKey: "AIzaSyBlcUAuskfuB0riHr0EAOmkmVMAoeiwmaE",
+  authDomain: "mastermonkey-auth.firebaseapp.com",
+  // databaseURL is optional for most setups; keep it empty if you don't have it
+  databaseURL: "",
+  projectId: "mastermonkey-auth",
+  storageBucket: "mastermonkey-auth.firebasestorage.app",
+  messagingSenderId: "263257780372",
+  appId: "1:263257780372:web:20588bc96efda29d334481",
+};
 
-// If the code expects named exports, add them too:
-export const firebaseConfig = null as const;
-export const firebaseEnabled = false as const;
+// Optional helpers (some parts of the codebase may use these)
+export const firebaseEnabled = true as const;
+export const FIREBASE_CONFIG = firebaseConfig as const;
