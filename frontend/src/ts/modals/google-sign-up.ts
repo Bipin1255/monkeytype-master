@@ -40,7 +40,7 @@ export async function show(_credential: UserCredential): Promise<void> {
 }
 
 subscribeToSignUpEvent((credential, isNewUser) => {
-  if (credential && isNewUser) {
+  if (credential !== undefined && isNewUser === true) {
     Notifications.add("Sign up is disabled on this build.", 0, { duration: 4 });
 
     if (getAdditionalUserInfo(credential)?.isNewUser) {
