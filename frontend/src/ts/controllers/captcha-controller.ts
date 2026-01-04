@@ -21,7 +21,7 @@ function getGrecaptcha(): Grecaptcha {
 }
 
 export function isCaptchaAvailable(): boolean {
-  return "grecaptcha" in window;
+  return false;
 }
 
 export function render(
