@@ -349,7 +349,7 @@ async function signUp(): Promise<void> {
   LoginPage.showPreloader();
 
   const signupData = LoginPage.getSignupData();
-  if (signupData === false) {
+  if (!signupData) {
     LoginPage.hidePreloader();
     LoginPage.enableInputs();
     LoginPage.updateSignupButton();
