@@ -43,3 +43,13 @@ export const page = new Page({
 onWindowLoad(() => {
   Skeleton.save("pageLogin");
 });
+
+
+// Google-only build: register form removed, keep these for compatibility
+export function enableSignUpButton(): void {
+  // no-op
+}
+
+export function disableSignUpButton(): void {
+  // no-op
+}
