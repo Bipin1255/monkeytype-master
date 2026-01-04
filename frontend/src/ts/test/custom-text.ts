@@ -5,6 +5,7 @@ import {
   CustomTextSettings,
   CustomTextSettingsSchema,
 } from "@monkeytype/schemas/results";
+import { DEFAULT_CUSTOM_PROMPTS } from "../constants/default-custom-prompts";
 
 const CustomTextObjectSchema = z.record(z.string(), z.string());
 type CustomTextObject = z.infer<typeof CustomTextObjectSchema>;
@@ -30,10 +31,10 @@ const customTextLongLS = new LocalStorageWithSchema({
 type CustomTextLimit = z.infer<typeof CustomTextSettingsSchema>["limit"];
 
 const defaultCustomTextSettings: CustomTextSettings = {
-  text: ["The", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"],
+  text: DEFAULT_CUSTOM_PROMPTS,
   mode: "repeat",
-  limit: { value: 9, mode: "word" },
-  pipeDelimiter: false,
+  limit: { value: 1, mode: "section" },
+  pipeDelimiter: true,
 };
 
 const customTextSettings = new LocalStorageWithSchema({
