@@ -34,24 +34,30 @@ async function cleanupNewUser(credential: UserCredential): Promise<void> {
 
 // Keep the signature in case something imports it
 export async function show(_credential: UserCredential): Promise<void> {
-  Notifications.add("Sign up is disabled. Please sign in with Google instead.", 0, {
-    duration: 4,
-  });
+  Notifications.add(
+    "Sign up is disabled. Please sign in with Google instead.",
+    0,
+    { duration: 4 },
+  );
 }
 
 subscribeToSignUpEvent((credential, isNewUser) => {
-  if (credential !== undefined && isNewUser === true) {
-    Notifications.add("Sign up is disabled on this build.", 0, { duration: 4 });
+  // Lint-safe: use the boolean directly, don't use object in conditionals
+  if (!isNewUser) return;
 
-    if (getAdditionalUserInfo(credential)?.isNewUser) {
-      void cleanupNewUser(credential);
-    } else {
-      try {
-        LoginPage.hidePreloader();
-        LoginPage.enableInputs();
-      } catch {
-        // ignore
-      }
-    }
+  Notifications.add("Sign up is disabled on this build.", 0, { duration: 4 });
+
+  // Only clean up if we actually have a credential and Firebase marks it as a new user
+  if (credential && getAdditionalUserInfo(credential)?.isNewUser) {
+    void cleanupNewUser(credential);
+    return;
+  }
+
+  // Ensure UI isn't stuck
+  try {
+    LoginPage.hidePreloader();
+    LoginPage.enableInputs();
+  } catch {
+    // ignore
   }
 });
