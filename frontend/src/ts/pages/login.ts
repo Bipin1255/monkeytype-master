@@ -30,10 +30,6 @@ export const page = new Page({
   },
   beforeShow: async (): Promise<void> => {
     Skeleton.append("pageLogin", "main");
-
-    const inputs = qsa<HTMLInputElement>(".pageLogin input");
-    inputs.forEach((input) => input.setValue(""));
-
     enableInputs();
     hidePreloader();
   },
@@ -45,15 +41,15 @@ onWindowLoad(() => {
 
 // Google-only build: signup removed, keep these exports for compatibility
 export function enableSignUpButton(): void {
-  // no-op
+  // no-op: signup disabled
 }
 
 export function disableSignUpButton(): void {
-  // no-op
+  // no-op: signup disabled
 }
 
 export function updateSignupButton(): void {
-  // no-op
+  // no-op: signup disabled
 }
 
 export function getSignupData(): false {
