@@ -3,7 +3,6 @@ import AnimatedModal from "../utils/animated-modal";
 import { showPopup } from "./simple-modals";
 import * as Notifications from "../elements/notifications";
 import { setMediaQueryDebugLevel } from "../ui";
-import { signIn } from "../auth";
 import * as Loader from "../elements/loader";
 import { update } from "../elements/xp-bar";
 import { toggleUserFakeChartData } from "../test/result";
@@ -63,11 +62,11 @@ async function setup(modalEl: ElementWithUtils): Promise<void> {
       );
       return;
     }
-    Loader.show();
-    void signIn(envConfig.quickLoginEmail, envConfig.quickLoginPassword).then(
-      () => {
-        Loader.hide();
-      },
+    // Google-only build: email/password login disabled
+    Notifications.add(
+      "Email/password login is disabled in this build. Use Google sign-in instead.",
+      0,
+      { duration: 4 },
     );
     void modal.hide();
   });
