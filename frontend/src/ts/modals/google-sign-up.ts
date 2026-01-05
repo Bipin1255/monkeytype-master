@@ -15,20 +15,20 @@ async function cleanupNewUser(credential: UserCredential): Promise<void> {
     // Remove the temporary Firebase user so we don't leave a dangling account
     await credential.user.delete().catch(() => undefined);
   } catch {
-    // ignore
+    // ignore deletion error
   }
 
   try {
     AccountController.signOut();
   } catch {
-    // ignore
+    // ignore signout error
   }
 
   try {
     LoginPage.hidePreloader();
     LoginPage.enableInputs();
   } catch {
-    // ignore
+    // ignore UI error
   }
 }
 
@@ -42,15 +42,19 @@ export async function show(_credential: UserCredential): Promise<void> {
 }
 
 subscribeToSignUpEvent((credential, isNewUser) => {
-  // Lint-safe: use the boolean directly, don't use object in conditionals
+  // Lint-safe: use the boolean directly
   if (!isNewUser) return;
 
   Notifications.add("Sign up is disabled on this build.", 0, { duration: 4 });
 
   // Only clean up if we actually have a credential and Firebase marks it as a new user
-  if (credential && getAdditionalUserInfo(credential)?.isNewUser) {
-    void cleanupNewUser(credential);
-    return;
+  // Use explicit undefined check for strict-boolean-expressions compliance
+  if (credential !== undefined) {
+    const additionalInfo = getAdditionalUserInfo(credential);
+    if (additionalInfo?.isNewUser === true) {
+      void cleanupNewUser(credential);
+      return;
+    }
   }
 
   // Ensure UI isn't stuck
@@ -58,6 +62,6 @@ subscribeToSignUpEvent((credential, isNewUser) => {
     LoginPage.hidePreloader();
     LoginPage.enableInputs();
   } catch {
-    // ignore
+    // ignore UI error
   }
 });
