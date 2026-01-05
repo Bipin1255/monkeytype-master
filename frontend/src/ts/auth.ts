@@ -6,6 +6,7 @@ import * as Loader from "./elements/loader";
 import * as LoginPage from "./pages/login";
 import {
   GoogleAuthProvider,
+  GithubAuthProvider,
   linkWithPopup,
   User as UserType,
   AuthProvider,
@@ -26,6 +27,7 @@ import * as AuthEvent from "./observables/auth-event";
 import { qs } from "./utils/dom";
 
 export const gmailProvider = new GoogleAuthProvider();
+export const githubProvider = new GithubAuthProvider();
 
 async function getDataAndInit(): Promise<boolean> {
   try {
@@ -158,6 +160,16 @@ export async function onAuthStateChanged(
   });
 }
 
+// Google-only build: email/password sign-in disabled but export kept for compatibility
+export async function signIn(
+  _email: string,
+  _password: string,
+): Promise<void> {
+  Notifications.add("Email/password sign-in is disabled. Please use Google sign-in.", 0, {
+    duration: 4,
+  });
+}
+
 async function signInWithProvider(provider: AuthProvider): Promise<void> {
   if (!isAuthAvailable()) {
     Notifications.add("Authentication uninitialized", -1, {
@@ -213,7 +225,10 @@ async function addAuthProvider(
   }
   Loader.show();
   const user = getAuthenticatedUser();
-  if (user === undefined) return;
+  if (user === null) {
+    Loader.hide();
+    return;
+  }
   try {
     await linkWithPopup(user, provider);
     Loader.hide();
